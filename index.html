@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Describe your page here for SEO." />
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <title>Recipe Book App</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f7f7f7;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #4caf50;
+        color: #fff;
+        padding: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin: 0;
+        padding: 0;
+      }
+      nav a {
+        color: #fff;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+        transition: color 0.2s;
+      }
+      nav a:hover {
+        color: #e0e0e0;
+      }
+      main {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .recipe-form {
+        background: #fff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+        margin-bottom: 2rem;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .recipe-form label {
+        display: block;
+        margin-top: 1rem;
+        font-weight: 500;
+      }
+      .recipe-form input[type="text"],
+      .recipe-form textarea,
+      .recipe-form select {
+        width: 100%;
+        padding: 0.5rem;
+        margin-top: 0.25rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      .recipe-form input[type="file"] {
+        margin-top: 0.5rem;
+      }
+      .recipe-form button {
+        margin-top: 1.5rem;
+        padding: 0.7rem 1.5rem;
+        border: none;
+        background: #4caf50;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .recipe-form button:hover {
+        background: #388e3c;
+      }
+      #recipes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin: 2rem auto;
+        max-width: 900px;
+      }
+      .recipe-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        transition: box-shadow 0.2s;
+        animation: fadeIn 0.5s;
+      }
+      .recipe-card:hover {
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.15);
+      }
+      .recipe-card h3 {
+        margin-top: 0;
+        color: #388e3c;
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+      }
+      .recipe-card img {
+        margin-top: 1rem;
+        border-radius: 6px;
+        max-width: 100%;
+        height: auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      footer {
+        background: #4caf50;
+        color: #fff;
+        text-align: center;
+        padding: 1rem 0;
+        margin-top: 2rem;
+      }
+      @media (max-width: 600px) {
+        main,
+        .recipe-form,
+        #recipes {
+          max-width: 100%;
+          padding: 0.5rem;
+        }
+        .recipe-card {
+          padding: 1rem;
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      /* Hide edit modal by default */
+      #edit-model {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #edit-model form {
+        background: #fff;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        min-width: 300px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">About</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section id="home">
+        <h1>Main Heading</h1>
+        <p>Welcome to our website.</p>
+      </section>
+
+      <section id="about">
+        <h2>About Us</h2>
+        <p>Brief description or story.</p>
+      </section>
+    </main>
+
+    <div class="recipe-form">
+      <form id="add-recipe-form">
+        <label for="title">Recipe Name:</label>
+        <input type="text" id="title" required />
+        <label for="ingre">Ingredients:</label>
+        <input type="text" id="ingre" required />
+        <label for="steps">Steps:</label>
+        <textarea id="steps" rows="3" required></textarea>
+        <select id="category" name="Category">
+          <option value="veg">Vegetarian</option>
+          <option value="meat">Meat</option>
+          <option value="fish">Fish</option>
+        </select>
+        <label for="img">Image</label>
+        <input
+          type="text"
+          id="img"
+          placeholder="Image URL (Ex: https://image.com)"
+          required
+        />
+        <button type="submit">Add Recipe</button>
+      </form>
+    </div>
+    <div id="recipe-list">
+      <div id="recipes"></div>
+      <div id="edit-model">
+        <form id="edit-recipe-form">
+          <label for="edit-title">Recipe Name: </label>
+          <input type="text" id="edit-title" required />
+          <label for="edit-ingre">Ingredients: </label>
+          <input type="text" id="edit-ingre" required />
+          <label for="edit-steps">Steps: </label>
+          <textarea id="edit-steps" rows="3" required></textarea>
+          <select id="edit-category" name="category">
+            <option value="veg">Vegetarian</option>
+            <option value="meat">Meat</option>
+            <option value="fish">Fish</option>
+          </select>
+          <label for="edit-img">Image Link</label>
+          <input type="text" id="edit-img" required />
+          <button type="submit">Update Recipe</button>
+          <button type="button" id="close-edit">Cancel</button>
+        </form>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2025 Your Company. All rights reserved.</p>
+    </footer>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDl4Av9h19LN2bqytyv8O1XKHTGFOcHJRo",
+        authDomain: "recipe-book-app-fc23d.firebaseapp.com",
+        projectId: "recipe-book-app-fc23d",
+        storageBucket: "recipe-book-app-fc23d.firebasestorage.app",
+        messagingSenderId: "64624340393",
+        appId: "1:64624340393:web:449987a7484b305f4068b8",
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      let currentEditId = null;
+
+      async function loadRecipes() {
+        const recipesDiv = document.getElementById("recipes");
+        recipesDiv.innerHTML = '<div id="loading">Loading recipes...</div>';
+        const snapshot = await db
+          .collection("recipes")
+          .orderBy("created", "desc")
+          .get();
+        recipesDiv.innerHTML = "";
+        if (snapshot.empty) {
+          recipesDiv.innerHTML =
+            "<div>No recipes yet. Add your first recipe!</div>";
+          return;
+        }
+        snapshot.forEach((doc) => {
+          const recipe = doc.data();
+          const recipeCard = document.createElement("div");
+          recipeCard.className = "recipe-card";
+          recipeCard.innerHTML = `
+                        <h3>${recipe.title}</h3>
+                        <p><strong>Ingredients:</strong> ${recipe.ingre}</p>
+                        <p><strong>Steps:</strong> ${recipe.steps}</p>
+                        <p><strong>Category:</strong> ${recipe.category}</p>
+                        ${
+                          recipe.img
+                            ? `<img src="${recipe.img}" alt="${recipe.title}" style="max-width:200px;">`
+                            : ""
+                        }
+                    `;
+
+          // Delete button
+          const deleteButton = document.createElement("button");
+          deleteButton.className = "delete-btn";
+          deleteButton.textContent = "Delete";
+          deleteButton.setAttribute("aria-label", "Delete recipe");
+          deleteButton.style.marginTop = "1rem";
+          deleteButton.onclick = async () => {
+            if (confirm("Are you sure you want to delete this recipe?")) {
+              await db.collection("recipes").doc(doc.id).delete();
+              loadRecipes();
+            }
+          };
+          recipeCard.appendChild(deleteButton);
+
+          // Edit button
+          const editButton = document.createElement("button");
+          editButton.className = "edit-btn";
+          editButton.textContent = "Edit";
+          editButton.setAttribute("aria-label", "Edit recipe");
+          editButton.style.marginLeft = "0.5rem";
+          editButton.onclick = () => {
+            document.getElementById("edit-model").style.display = "block";
+            document.getElementById("edit-title").value = recipe.title;
+            document.getElementById("edit-ingre").value = recipe.ingre;
+            document.getElementById("edit-steps").value = recipe.steps;
+            document.getElementById("edit-category").value = recipe.category;
+            document.getElementById("edit-img").value = recipe.img;
+            currentEditId = doc.id;
+          };
+          recipeCard.appendChild(editButton);
+
+          recipesDiv.appendChild(recipeCard);
+        });
+      }
+
+      loadRecipes();
+
+      document
+        .getElementById("add-recipe-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const title = document.getElementById("title").value.trim();
+          const ingre = document.getElementById("ingre").value.trim();
+          const steps = document.getElementById("steps").value.trim();
+          const category = document.getElementById("category").value.trim();
+          const img = document.getElementById("img").value.trim();
+
+          if (!title || !ingre || !steps || !category || !img) {
+            alert("Fields cannot be empty");
+            return;
+          }
+          await db.collection("recipes").add({
+            title,
+            ingre,
+            steps,
+            category,
+            img,
+            created: new Date(),
+          });
+          document.getElementById("add-recipe-form").reset();
+          loadRecipes();
+        });
+
+      // Edit form submit handler
+      document
+        .getElementById("edit-recipe-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!currentEditId) return;
+          const title = document.getElementById("edit-title").value.trim();
+          const ingre = document.getElementById("edit-ingre").value.trim();
+          const steps = document.getElementById("edit-steps").value.trim();
+          const category = document
+            .getElementById("edit-category")
+            .value.trim();
+          const img = document.getElementById("edit-img").value.trim();
+          if (!title || !ingre || !steps || !category || !img) {
+            alert("Fields cannot be empty");
+            return;
+          }
+          await db.collection("recipes").doc(currentEditId).update({
+            title,
+            ingre,
+            steps,
+            category,
+            img,
+          });
+          document.getElementById("edit-model").style.display = "none";
+          currentEditId = null;
+          loadRecipes();
+        });
+
+      // Close edit modal on cancel
+      document.getElementById("close-edit").addEventListener("click", () => {
+        document.getElementById("edit-model").style.display = "none";
+        currentEditId = null;
+      });
+    </script>
+  </body>
+</html>
